@@ -45,19 +45,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
     }
   };
 
-  const loadSessions = () => {
-    const data = getSessions();
+  const loadSessions = async () => {
+    const data = await getSessions();
     setSessions(data);
     if (data.length > 0 && !selectedSessionId) {
         setSelectedSessionId(data[0].id);
     }
   };
 
-  const handleDelete = (id: string, e: React.MouseEvent) => {
+  const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (window.confirm('Are you sure you want to delete this session record?')) {
-        deleteSession(id);
-        loadSessions();
+        await deleteSession(id);
+        await loadSessions();
         if (selectedSessionId === id) {
             setSelectedSessionId(null);
         }
@@ -76,8 +76,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
               status: 'completed'
           };
           
-          saveSession(updatedSession);
-          loadSessions(); // Reload list to reflect changes
+          await saveSession(updatedSession);
+          await loadSessions(); // Reload list to reflect changes
           setActiveTab('report'); // Switch to report tab
       } catch (error) {
           alert('Failed to generate report. Please try again.');

@@ -68,8 +68,8 @@ const App: React.FC = () => {
     }
   }, [pendingLiveEnd, isAgentSpeaking, isLiveConnected]);
 
-  // Helper to save session state to localStorage
-  const persistSession = useCallback((msgs: Message[], rpt: string | null, status: 'in-progress' | 'completed') => {
+  // Helper to save session state to Supabase/localStorage
+  const persistSession = useCallback(async (msgs: Message[], rpt: string | null, status: 'in-progress' | 'completed') => {
       const sessionData: OnboardingSession = {
           id: sessionIdRef.current,
           date: new Date().toISOString(),
@@ -79,7 +79,7 @@ const App: React.FC = () => {
           language: language,
           status: status
       };
-      saveSession(sessionData);
+      await saveSession(sessionData);
   }, [language]);
 
   // Initial Welcome

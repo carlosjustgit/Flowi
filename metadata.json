@@ -1,0 +1,7 @@
+{
+  "name": "Flow Productions Onboarding AI",
+  "description": "AI-powered onboarding agent for Flow Productions. Handles client interviews in EN/PT and generates internal reports.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}

@@ -4,6 +4,14 @@ import { ONBOARDING_SYSTEM_INSTRUCTION, LIVE_ONBOARDING_SYSTEM_INSTRUCTION, REPO
 
 // Initialize API Client
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY || ''; 
+
+// Debug logging (only logs key existence, not the actual key)
+if (!apiKey) {
+  console.error('❌ VITE_GEMINI_API_KEY is not defined');
+} else {
+  console.log('✅ VITE_GEMINI_API_KEY is loaded');
+}
+
 const ai = new GoogleGenAI({ apiKey });
 
 let chatSession: Chat | null = null;

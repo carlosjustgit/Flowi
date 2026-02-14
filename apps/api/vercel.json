@@ -1,6 +1,0 @@
-{
-  "framework": "nextjs",
-  "buildCommand": "cd ../.. && npm install && npm run build:core && npm run build:api",
-  "installCommand": "npm install --prefix ../.. && npm install --prefix ../../packages/core",
-  "outputDirectory": ".next"
-}

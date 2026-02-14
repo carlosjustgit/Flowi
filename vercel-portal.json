@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "apps/portal/package.json",
+      "use": "@vercel/next",
+      "config": {
+        "installCommand": "npm install --workspace=apps/portal --include-workspace-root",
+        "buildCommand": "npm run build:portal"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "apps/portal/$1"
+    }
+  ]
+}

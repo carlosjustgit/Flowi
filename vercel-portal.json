@@ -9,11 +9,5 @@
         "buildCommand": "npm run build:portal"
       }
     }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "apps/portal/$1"
-    }
   ]
 }

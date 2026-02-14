@@ -1,6 +1,14 @@
 import { createServiceClient } from '@flow/core';
 import { readFile } from 'fs/promises';
-import { resolve } from 'path';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
+import { config } from 'dotenv';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Load environment variables from .env.local
+config({ path: resolve(__dirname, '../.env.local') });
 
 async function runSmokeTest() {
   console.log('🧪 Starting research worker smoke test...\n');

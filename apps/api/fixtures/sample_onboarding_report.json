@@ -1,0 +1,34 @@
+{
+  "company_name": "Acme Corp",
+  "industry": "SaaS",
+  "target_audience": "B2B tech startups and scale-ups",
+  "company_size": "50-200 employees",
+  "primary_goals": [
+    "Increase brand awareness in the B2B SaaS space",
+    "Generate qualified leads for the sales team",
+    "Position as thought leaders in productivity tools"
+  ],
+  "current_challenges": [
+    "Low social media engagement",
+    "Difficulty competing with established players",
+    "Limited marketing budget"
+  ],
+  "unique_value_proposition": "AI-powered productivity platform that reduces meeting time by 40%",
+  "key_products": [
+    "Acme Meetings - AI meeting assistant",
+    "Acme Tasks - Smart task management",
+    "Acme Docs - Collaborative documentation"
+  ],
+  "competitors": [
+    "Competitor A",
+    "Competitor B",
+    "Competitor C"
+  ],
+  "target_channels": ["LinkedIn", "Twitter/X", "Product Hunt"],
+  "monthly_budget": "$5000",
+  "kpis": [
+    "Website traffic from social",
+    "Demo requests",
+    "Engagement rate"
+  ]
+}

@@ -1,12 +1,24 @@
 {
-  "name": "flow-productions-onboarding-ai",
+  "name": "flow-productions-monorepo",
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "workspaces": [
+    "apps/api",
+    "apps/portal",
+    "packages/core"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "dev:api": "npm run dev --workspace=apps/api",
+    "dev:portal": "npm run dev --workspace=apps/portal",
+    "dev:onboarding": "vite",
+    "build:api": "npm run build --workspace=apps/api",
+    "build:portal": "npm run build --workspace=apps/portal",
+    "build:onboarding": "vite build",
+    "build:core": "npm run build --workspace=packages/core"
   },
   "dependencies": {
     "@google/genai": "^1.38.0",

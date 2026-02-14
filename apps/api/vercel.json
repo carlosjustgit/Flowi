@@ -1,6 +1,7 @@
 {
-  "buildCommand": "cd ../.. && npm install && npm run build --workspace=apps/api",
-  "outputDirectory": ".next",
+  "buildCommand": "npm run build:core && npm run build:api",
+  "outputDirectory": "apps/api/.next",
   "framework": "nextjs",
-  "installCommand": "cd ../.. && npm install"
+  "installCommand": "npm install",
+  "rootDirectory": "../../"
 }

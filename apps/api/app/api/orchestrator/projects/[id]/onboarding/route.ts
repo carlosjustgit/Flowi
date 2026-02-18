@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServiceClient } from '@flow/core';
+import { createServiceClient } from '@/lib/flow-core';
 
 interface RouteParams {
   params: Promise<{

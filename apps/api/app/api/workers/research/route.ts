@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readFile } from 'fs/promises';
 import { resolve } from 'path';
-import { createServiceClient, logWorkerRun, validateResearchFoundation } from '@flow/core';
+import { createServiceClient, logWorkerRun, validateResearchFoundation } from '@/lib/flow-core';
 import { getArtifact, updateJobStatus } from '@/lib/orchestrator';
 import { generateJSON } from '@/lib/gemini';
 

@@ -1,4 +1,4 @@
-import { createServiceClient } from '@flow/core';
+import { createServiceClient } from '@/lib/flow-core';
 
 /**
  * Create a new kb_packager job after research completes

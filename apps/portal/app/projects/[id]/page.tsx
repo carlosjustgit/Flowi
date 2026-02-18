@@ -25,6 +25,8 @@ export default function ProjectDetailPage() {
   const [project, setProject] = useState<Project | null>(null);
   const [artifacts, setArtifacts] = useState<Artifact[]>([]);
   const [loading, setLoading] = useState(true);
+  const [runningResearch, setRunningResearch] = useState(false);
+  const [researchStatus, setResearchStatus] = useState<string | null>(null);
   const router = useRouter();
   const supabase = createSupabaseBrowserClient();
 
@@ -74,6 +76,69 @@ export default function ProjectDetailPage() {
       grouped[artifact.type].push(artifact);
     });
     return grouped;
+  };
+
+  const runResearchAgent = async () => {
+    setRunningResearch(true);
+    setResearchStatus('Finding onboarding report...');
+
+    try {
+      const onboardingArtifact = artifacts.find(
+        (a) => a.type.includes('onboarding')
+      );
+
+      if (!onboardingArtifact) {
+        throw new Error('No onboarding report found');
+      }
+
+      setResearchStatus('Creating research job...');
+
+      const { data: job, error: jobError } = await supabase
+        .from('jobs')
+        .insert({
+          project_id: projectId,
+          type: 'research',
+          status: 'pending',
+        })
+        .select()
+        .single();
+
+      if (jobError) throw jobError;
+
+      setResearchStatus('Running YOUR research agent...');
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api-1p29qc85j-carlos-projects-7e35eb7d.vercel.app';
+      const response = await fetch(`${apiUrl}/api/workers/research`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          project_id: projectId,
+          input_artifact_id: onboardingArtifact.id,
+          job_id: job.id,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Research failed');
+      }
+
+      setResearchStatus('✅ Research complete! Refreshing...');
+      await loadProjectData();
+      
+      setTimeout(() => {
+        setResearchStatus(null);
+        setRunningResearch(false);
+      }, 3000);
+
+    } catch (error) {
+      console.error('Error:', error);
+      setResearchStatus(`❌ ${error instanceof Error ? error.message : 'Error'}`);
+      setTimeout(() => {
+        setResearchStatus(null);
+        setRunningResearch(false);
+      }, 5000);
+    }
   };
 
   if (loading) {
@@ -128,7 +193,24 @@ export default function ProjectDetailPage() {
             >
               Chat (Phase 2)
             </Link>
+            <button
+              onClick={runResearchAgent}
+              disabled={runningResearch}
+              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400 flex items-center gap-2"
+            >
+              {runningResearch ? '⟳ Running...' : '🔬 Run Research Agent'}
+            </button>
           </div>
+
+          {researchStatus && (
+            <div className={`mb-6 p-4 rounded ${
+              researchStatus.includes('✅') ? 'bg-green-50 text-green-800' :
+              researchStatus.includes('❌') ? 'bg-red-50 text-red-800' :
+              'bg-blue-50 text-blue-800'
+            }`}>
+              {researchStatus}
+            </div>
+          )}
 
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Artifacts</h2>
 

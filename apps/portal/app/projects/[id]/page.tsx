@@ -107,7 +107,7 @@ export default function ProjectDetailPage() {
 
       setResearchStatus('Running YOUR research agent...');
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api-1p29qc85j-carlos-projects-7e35eb7d.vercel.app';
+      const apiUrl = 'https://flow-productions-onboarding-cjoo9s0pm-carlos-projects-7e35eb7d.vercel.app';
       const response = await fetch(`${apiUrl}/api/workers/research`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

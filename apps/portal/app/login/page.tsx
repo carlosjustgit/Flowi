@@ -11,6 +11,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const router = useRouter();
   const supabase = createSupabaseBrowserClient();
 
@@ -55,7 +56,7 @@ export default function LoginPage() {
       if (error) {
         // Check if user already exists
         if (error.message.includes('already registered') || error.status === 422) {
-          setError('This email is already registered. Please sign in instead.');
+          setError('This email is already registered. Please sign in instead or reset your password.');
           // Auto-switch to sign in after 2 seconds
           setTimeout(() => setIsSignUp(false), 2000);
           return;
@@ -78,6 +79,31 @@ export default function LoginPage() {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setMessage(null);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/projects`,
+      });
+
+      if (error) throw error;
+
+      setMessage('Password reset email sent! Check your inbox.');
+      setTimeout(() => {
+        setIsForgotPassword(false);
+        setIsSignUp(false);
+      }, 3000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow">
@@ -89,10 +115,10 @@ export default function LoginPage() {
             Flow Productions Portal
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            {isSignUp ? 'Create your account' : 'Sign in to access your projects'}
+            {isForgotPassword ? 'Reset your password' : isSignUp ? 'Create your account' : 'Sign in to access your projects'}
           </p>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={isSignUp ? handleSignUp : handleLogin}>
+        <form className="mt-8 space-y-6" onSubmit={isForgotPassword ? handleForgotPassword : (isSignUp ? handleSignUp : handleLogin)}>
           <div className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
@@ -109,21 +135,23 @@ export default function LoginPage() {
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
+            {!isForgotPassword && (
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                  Password
+                </label>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            )}
           </div>
 
           {error && (
@@ -144,20 +172,54 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
             >
-              {loading ? (isSignUp ? 'Creating account...' : 'Signing in...') : (isSignUp ? 'Create Account' : 'Sign in')}
+              {loading 
+                ? (isForgotPassword ? 'Sending...' : isSignUp ? 'Creating account...' : 'Signing in...') 
+                : (isForgotPassword ? 'Send Reset Email' : isSignUp ? 'Create Account' : 'Sign in')}
             </button>
             
-            <button
-              type="button"
-              onClick={() => {
-                setIsSignUp(!isSignUp);
-                setError(null);
-                setMessage(null);
-              }}
-              className="w-full text-sm text-blue-600 hover:text-blue-800"
-            >
-              {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
-            </button>
+            {!isForgotPassword && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSignUp(!isSignUp);
+                    setError(null);
+                    setMessage(null);
+                  }}
+                  className="w-full text-sm text-blue-600 hover:text-blue-800"
+                >
+                  {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
+                </button>
+                
+                {!isSignUp && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsForgotPassword(true);
+                      setError(null);
+                      setMessage(null);
+                    }}
+                    className="w-full text-sm text-gray-600 hover:text-gray-800"
+                  >
+                    Forgot your password?
+                  </button>
+                )}
+              </>
+            )}
+            
+            {isForgotPassword && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsForgotPassword(false);
+                  setError(null);
+                  setMessage(null);
+                }}
+                className="w-full text-sm text-gray-600 hover:text-gray-800"
+              >
+                Back to sign in
+              </button>
+            )}
           </div>
         </form>
       </div>

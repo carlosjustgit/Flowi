@@ -44,7 +44,7 @@ export default function LoginPage() {
     setMessage(null);
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -52,9 +52,25 @@ export default function LoginPage() {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        // Check if user already exists
+        if (error.message.includes('already registered') || error.status === 422) {
+          setError('This email is already registered. Please sign in instead.');
+          // Auto-switch to sign in after 2 seconds
+          setTimeout(() => setIsSignUp(false), 2000);
+          return;
+        }
+        throw error;
+      }
 
-      setMessage('Check your email for the confirmation link!');
+      // Check if email confirmation is required
+      if (data.user && !data.session) {
+        setMessage('Check your email for the confirmation link!');
+      } else if (data.session) {
+        // Email confirmation disabled, redirect immediately
+        router.push('/projects');
+        router.refresh();
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {

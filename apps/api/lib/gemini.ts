@@ -1,7 +1,9 @@
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-
-if (!GEMINI_API_KEY) {
-  throw new Error('GEMINI_API_KEY environment variable is required');
+function getApiKey(): string {
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) {
+    throw new Error('GEMINI_API_KEY environment variable is required');
+  }
+  return key;
 }
 
 /**
@@ -13,6 +15,7 @@ export async function generateContent(
   modelName: string = 'gemini-2.0-flash-exp',
   enableGrounding: boolean = false
 ): Promise<any> {
+  const GEMINI_API_KEY = getApiKey();
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_API_KEY}`;
   
   const body: any = {
@@ -57,6 +60,7 @@ export async function generateJSON<T = any>(
   modelName: string = 'gemini-2.0-flash-exp',
   enableGrounding: boolean = false
 ): Promise<{ data: T; tokensIn: number; tokensOut: number }> {
+  const GEMINI_API_KEY = getApiKey();
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_API_KEY}`;
   
   const body: any = {

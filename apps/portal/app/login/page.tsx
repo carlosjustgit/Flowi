@@ -50,15 +50,17 @@ export default function LoginPage() {
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/projects`,
+          data: {
+            app_origin: 'flow-ai',
+            app_name: 'Flow Productions AI'
+          }
         },
       });
 
       if (error) {
         // Check if user already exists
         if (error.message.includes('already registered') || error.status === 422) {
-          setError('This email is already registered. Please sign in instead or reset your password.');
-          // Auto-switch to sign in after 2 seconds
-          setTimeout(() => setIsSignUp(false), 2000);
+          setError('This email is already registered. If you registered in another Flow app, please use that portal or contact support.');
           return;
         }
         throw error;

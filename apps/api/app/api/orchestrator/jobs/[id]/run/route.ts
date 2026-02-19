@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getJob, updateJobStatus } from '@/lib/orchestrator';
+import { createServiceClient } from '@/lib/flow-core';
 
 interface RouteParams {
   params: Promise<{
@@ -45,6 +46,15 @@ export async function POST(
     // Update job status to running
     await updateJobStatus(jobId, 'running');
 
+    // Fetch project to get the language for this job
+    const supabase = createServiceClient();
+    const { data: project } = await supabase
+      .from('projects')
+      .select('language')
+      .eq('id', (job as any).project_id)
+      .single();
+    const language: string = (project as any)?.language ?? 'pt';
+
     // Route to appropriate worker based on job type
     const workerUrl = new URL(
       `/api/workers/${(job as any).type}`,
@@ -59,7 +69,8 @@ export async function POST(
       body: JSON.stringify({
         project_id: (job as any).project_id,
         input_artifact_id: (job as any).input_artifact_id,
-        job_id: (job as any).id
+        job_id: (job as any).id,
+        language
       })
     });
 

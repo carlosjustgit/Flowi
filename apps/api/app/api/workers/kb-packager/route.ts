@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
   
   try {
     const body = await request.json();
-    const { project_id, input_artifact_id, job_id } = body;
+    const { project_id, input_artifact_id, job_id, language = 'pt' } = body;
 
     if (!project_id || !input_artifact_id || !job_id) {
       return NextResponse.json(
@@ -23,6 +23,10 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    const langDirective = language === 'pt'
+      ? `OUTPUT LANGUAGE (MANDATORY): Write ALL file content in European Portuguese (pt-PT). Use vocabulary such as "Estou a fazer" (not "fazendo"), "Ecrã" (not "tela"), "Equipa" (not "equipe"), "Rato" (not "mouse"). Never output headings, descriptions, or guidelines in English.`
+      : `OUTPUT LANGUAGE (MANDATORY): Write ALL file content in English (UK English preferred). All headings, descriptions, and guidelines must be in English.`;
 
     // Load input artifact (strategy pack)
     const inputArtifact = await getArtifact(input_artifact_id);
@@ -57,9 +61,10 @@ Output ONLY a valid JSON array, no markdown formatting.`;
 
     // Call Gemini with JSON output mode
     const model = 'gemini-2.0-flash-exp';
+    const kbSystemInstruction = `${langDirective}\n\nYou are a knowledge base specialist. Create clear, concise knowledge base files from the strategy pack.`;
     const { data: kbFiles, tokensIn, tokensOut } = await generateJSON<KBFile[]>(
       fullPrompt,
-      'You are a knowledge base specialist. Create clear, concise knowledge base files from the strategy pack.',
+      kbSystemInstruction,
       model
     );
 

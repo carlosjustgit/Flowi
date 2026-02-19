@@ -250,195 +250,227 @@ const App: React.FC = () => {
       
       {showAdmin && <AdminDashboard onClose={() => setShowAdmin(false)} />}
 
-      {/* Live Mode Overlay */}
+      {/* ── Live Voice Overlay ─────────────────────────────────── */}
       {isLiveMode && (
-        <div className="absolute inset-0 z-40 bg-flow-900/95 backdrop-blur-xl flex flex-col items-center justify-center animate-fade-in transition-all">
-           
-           {/* Visualizer Container - Increased margin bottom to fix overlap */}
-           <div className="relative mb-24">
-               {/* Pulsing Ring (Agent Speaking) */}
-               {isAgentSpeaking && (
-                 <>
-                   <div className="absolute inset-0 bg-flow-accent rounded-full animate-ping opacity-30"></div>
-                   <div className="absolute inset-0 bg-flow-accent rounded-full animate-pulse opacity-50 delay-75 duration-1000"></div>
-                 </>
-               )}
-               
-               {/* Avatar */}
-               <div className={`w-40 h-40 rounded-full flex items-center justify-center shadow-[0_0_60px_rgba(99,102,241,0.4)] relative z-10 overflow-hidden border-4 transition-all duration-300 ${isAgentSpeaking ? 'border-flow-accent scale-105' : 'border-gray-600 scale-100'}`}>
-                    {isLiveConnected ? (
-                       <img 
-                         src={FLOWI_AVATAR_URL} 
-                         alt="Flowi Live"
-                         className="w-full h-full object-cover opacity-90"
-                         onError={(e) => { e.currentTarget.src = FLOW_LOGO_FALLBACK; }}
-                       />
-                    ) : (
-                       <div className="flex items-center justify-center w-full h-full bg-gray-800">
-                         <Loader2 className="w-12 h-12 text-gray-400 animate-spin" />
-                       </div>
-                    )}
-               </div>
+        <div className="absolute inset-0 z-40 bg-flow-900/98 backdrop-blur-2xl flex flex-col items-center justify-center animate-fade-in">
+          
+          {/* Ambient glow */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full blur-3xl transition-all duration-1000 ${isAgentSpeaking ? 'bg-flow-accent/20 scale-125' : 'bg-flow-accent/8 scale-100'}`}></div>
+          </div>
 
-               {/* Mic Indicator / Visualizer when User Speaking */}
-               {isLiveConnected && !isAgentSpeaking && (
-                   <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 flex items-end gap-1 h-12">
-                        <div className="w-2 bg-green-500 rounded-full transition-all duration-75" style={{ height: `${Math.max(10, micVolume / 2)}%` }}></div>
-                        <div className="w-2 bg-green-500 rounded-full transition-all duration-75" style={{ height: `${Math.max(10, micVolume / 1.5)}%` }}></div>
-                        <div className="w-2 bg-green-500 rounded-full transition-all duration-75" style={{ height: `${Math.max(10, micVolume)}%` }}></div>
-                        <div className="w-2 bg-green-500 rounded-full transition-all duration-75" style={{ height: `${Math.max(10, micVolume / 1.5)}%` }}></div>
-                        <div className="w-2 bg-green-500 rounded-full transition-all duration-75" style={{ height: `${Math.max(10, micVolume / 2)}%` }}></div>
-                   </div>
-               )}
-           </div>
-           
-           <h2 className="text-3xl font-bold text-white mb-3">
-             {isLiveConnected ? (isAgentSpeaking ? t.statusSpeaking : t.statusListening) : t.liveTitleConnecting}
-           </h2>
-           
-           <p className="text-gray-400 mb-12 text-center max-w-sm px-4 h-6">
-               {isLiveConnected 
-                 ? (isAgentSpeaking ? " " : t.actionSpeak)
-                 : t.liveDescConnecting}
-           </p>
+          {/* Avatar + visualizer */}
+          <div className="relative mb-10 z-10">
+            {/* Outer pulse rings when speaking */}
+            {isAgentSpeaking && (
+              <>
+                <div className="absolute inset-0 rounded-full border-2 border-flow-accent/40 animate-ping scale-125"></div>
+                <div className="absolute inset-0 rounded-full border border-flow-accent/20 animate-ping scale-150" style={{ animationDelay: '0.3s' }}></div>
+              </>
+            )}
 
-           <button 
-             onClick={endLiveSession}
-             className="flex items-center gap-3 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white px-10 py-5 rounded-full border border-red-500/50 transition-all duration-300 group shadow-lg"
-           >
-               <PhoneOff size={28} className="group-hover:rotate-90 transition-transform" />
-               <span className="font-semibold text-lg">{t.endCall}</span>
-           </button>
+            {/* Avatar circle */}
+            <div className={`w-36 h-36 rounded-full overflow-hidden relative z-10 transition-all duration-500 ${
+              isAgentSpeaking
+                ? 'ring-4 ring-flow-accent shadow-glow-purple-lg scale-105'
+                : isLiveConnected
+                  ? 'ring-2 ring-flow-accent/60 shadow-glow-purple scale-100'
+                  : 'ring-2 ring-flow-600 scale-100'
+            }`}>
+              {isLiveConnected ? (
+                <img src={FLOWI_AVATAR_URL} alt="Flowi" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.src = FLOW_LOGO_FALLBACK; }} />
+              ) : (
+                <div className="flex items-center justify-center w-full h-full bg-flow-800">
+                  <Loader2 className="w-10 h-10 text-flow-accent animate-spin" />
+                </div>
+              )}
+            </div>
+
+            {/* Mic wave bars — shown when user can speak */}
+            {isLiveConnected && !isAgentSpeaking && (
+              <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 flex items-end gap-[3px] h-10">
+                {[0.5, 0.7, 1, 0.7, 0.5].map((scale, i) => (
+                  <div
+                    key={i}
+                    className="w-1.5 bg-flow-accent rounded-full transition-all duration-75"
+                    style={{ height: `${Math.max(14, micVolume * scale)}%` }}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Status label */}
+          <div className="z-10 text-center mb-2">
+            <h2 className="text-2xl font-bold text-white tracking-tight">
+              {isLiveConnected
+                ? isAgentSpeaking ? t.statusSpeaking : t.statusListening
+                : t.liveTitleConnecting}
+            </h2>
+            <p className="text-sm text-gray-500 mt-1 h-5">
+              {isLiveConnected
+                ? isAgentSpeaking ? '' : t.actionSpeak
+                : t.liveDescConnecting}
+            </p>
+          </div>
+
+            {/* Yellow "LIVE" badge */}
+            {isLiveConnected && (
+              <div className="z-10 flex items-center gap-1.5 bg-flow-accent text-flow-charcoal text-xs font-bold px-3 py-1 rounded-full mt-3 mb-10">
+                <span className="w-1.5 h-1.5 bg-flow-charcoal rounded-full animate-pulse"></span>
+                LIVE
+              </div>
+            )}
+          {!isLiveConnected && <div className="mb-10" />}
+
+          {/* End call button */}
+          <button
+            onClick={endLiveSession}
+            className="z-10 flex items-center gap-2.5 px-8 py-4 rounded-full border border-red-500/40 bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all duration-300 font-semibold group"
+          >
+            <PhoneOff size={20} className="group-hover:rotate-12 transition-transform duration-200" />
+            {t.endCall}
+          </button>
         </div>
       )}
 
-      {/* Header */}
-      <header className="flex-none p-4 md:p-6 border-b border-gray-800 bg-flow-900/90 backdrop-blur-md z-10">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-transparent rounded-lg flex items-center justify-center overflow-hidden">
-                    <img 
-                        src={FLOW_LOGO_URL} 
-                        alt="Flow Logo" 
-                        className="w-full h-full object-contain"
-                        onError={(e) => { e.currentTarget.src = FLOW_LOGO_FALLBACK; }}
-                    />
-                </div>
-                <div>
-                    <h1 className="text-xl font-bold tracking-tight text-white">{t.headerTitle}</h1>
-                    <p className="text-xs text-gray-400 font-medium tracking-wide uppercase">{t.headerSubtitle}</p>
-                </div>
+      {/* ── Header ────────────────────────────────────────────── */}
+      <header className="flex-none border-b border-flow-700/60 bg-flow-900/95 backdrop-blur-md z-10">
+        <div className="max-w-4xl mx-auto px-4 md:px-6 py-3 md:py-4 flex items-center justify-between">
+          {/* Brand */}
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg overflow-hidden flex items-center justify-center">
+              <img
+                src={FLOW_LOGO_URL}
+                alt="Flow"
+                className="w-full h-full object-contain"
+                onError={(e) => { e.currentTarget.src = FLOW_LOGO_FALLBACK; }}
+              />
             </div>
-            <div className="flex items-center gap-4">
-                {isInterviewComplete && isProcessing && (
-                    <div className="flex items-center gap-2 text-flow-accent text-sm animate-pulse">
-                        <Loader2 className="animate-spin" size={16} />
-                        <span>{t.generatingReport}</span>
-                    </div>
-                )}
-                
-                {!isInterviewComplete && messages.length > 2 && (
-                    <button 
-                        onClick={() => finalizeInterview(messages)}
-                        disabled={isProcessing}
-                        className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white px-3 py-1.5 rounded-full border border-gray-700 text-xs transition-colors"
-                    >
-                        <CheckCircle size={14} />
-                        <span className="hidden sm:inline">{t.finishReport}</span>
-                    </button>
-                )}
+            <div>
+              <h1 className="text-base font-bold tracking-tight text-white leading-none">{t.headerTitle}</h1>
+              <p className="text-[10px] text-flow-accent font-semibold tracking-widest uppercase mt-0.5">{t.headerSubtitle}</p>
             </div>
+          </div>
+
+          {/* Right side actions */}
+          <div className="flex items-center gap-3">
+            {isInterviewComplete && isProcessing && (
+              <div className="flex items-center gap-2 text-flow-accent text-xs animate-pulse font-semibold">
+                <Loader2 className="animate-spin" size={14} />
+                <span>{t.generatingReport}</span>
+              </div>
+            )}
+            {!isInterviewComplete && messages.length > 2 && (
+              <button
+                onClick={() => finalizeInterview(messages)}
+                disabled={isProcessing}
+                className="flex items-center gap-1.5 bg-flow-accent hover:bg-flow-accentHover text-flow-charcoal px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
+              >
+                <CheckCircle size={13} />
+                <span className="hidden sm:inline">{t.finishReport}</span>
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
-      {/* Main Chat Area */}
-      <main className="flex-1 overflow-y-auto relative p-4 md:p-6">
-        <div className="max-w-3xl mx-auto pb-32">
+      {/* ── Chat Area ─────────────────────────────────────────── */}
+      <main className="flex-1 overflow-y-auto p-4 md:p-6">
+        <div className="max-w-3xl mx-auto pb-36">
           {messages.map((msg) => (
             <ChatMessage key={msg.id} message={msg} />
           ))}
 
+          {/* Typing indicator */}
           {isProcessing && (
-            <div className="flex justify-start mb-6">
-               <div className="bg-gray-800 rounded-2xl rounded-tl-none p-4 border border-gray-700">
-                 <div className="flex gap-1.5">
-                   <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                   <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                   <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                 </div>
-               </div>
+            <div className="flex justify-start mb-6 animate-fade-in">
+              <div className="flex items-center gap-2 bg-flow-800 border border-flow-700 rounded-2xl rounded-tl-none px-4 py-3">
+                <div className="w-1.5 h-1.5 bg-flow-accent rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                <div className="w-1.5 h-1.5 bg-flow-accent rounded-full animate-bounce" style={{ animationDelay: '160ms' }}></div>
+                <div className="w-1.5 h-1.5 bg-flow-accent rounded-full animate-bounce" style={{ animationDelay: '320ms' }}></div>
+              </div>
             </div>
           )}
-          
+
           <div ref={messagesEndRef} />
         </div>
       </main>
 
-      {/* Input Area */}
+      {/* ── Input Area ────────────────────────────────────────── */}
       {!showAdmin && (
-        <footer className="flex-none p-4 md:p-6 bg-gradient-to-t from-flow-900 via-flow-900 to-transparent">
-            <div className="max-w-3xl mx-auto">
-                {isInterviewComplete && !isProcessing ? (
-                     <div className="w-full flex flex-col items-center justify-center p-2 bg-gray-800/80 backdrop-blur-sm rounded-3xl border border-gray-700 shadow-xl">
-                        <button 
-                            onClick={() => window.location.reload()}
-                            className="flex items-center gap-2 bg-flow-accent hover:bg-flow-accentHover text-white px-6 py-3 rounded-full transition-colors text-sm font-medium shadow-lg hover:shadow-flow-accent/30"
-                        >
-                            <RotateCcw size={16} />
-                            {t.startNewSession}
-                        </button>
-                     </div>
-                ) : (
-                    <div className="relative flex items-end gap-2 bg-gray-800/80 backdrop-blur-sm p-2 rounded-3xl border border-gray-700 shadow-xl ring-1 ring-white/5 focus-within:ring-flow-accent/50 transition-all">
-                        
-                        <button
-                            onClick={toggleLiveMode}
-                            disabled={isProcessing || isInterviewComplete}
-                            className="p-3 rounded-full transition-all duration-200 bg-green-600/20 text-green-500 hover:bg-green-600 hover:text-white border border-green-600/30"
-                            title={t.startVoiceCall}
-                        >
-                            <Phone size={20} />
-                        </button>
+        <footer className="flex-none px-4 md:px-6 pb-5 pt-2 bg-gradient-to-t from-flow-900 via-flow-900/95 to-transparent">
+          <div className="max-w-3xl mx-auto">
 
-                        <textarea
-                            ref={inputRef}
-                            value={inputValue}
-                            onChange={(e) => setInputValue(e.target.value)}
-                            onKeyDown={handleKeyDown}
-                            placeholder={t.inputPlaceholder}
-                            disabled={isProcessing || isInterviewComplete}
-                            className="flex-1 bg-transparent border-0 focus:ring-0 text-white placeholder-gray-500 resize-none py-3 max-h-32 min-h-[44px]"
-                            rows={1}
-                            style={{ height: 'auto', minHeight: '44px' }}
-                        />
-
-                        <button
-                            onClick={() => handleSendMessage(inputValue)}
-                            disabled={!inputValue.trim() || isProcessing || isInterviewComplete}
-                            className={`p-3 rounded-full transition-all duration-200 ${
-                                inputValue.trim() && !isProcessing
-                                    ? 'bg-white text-black hover:bg-gray-200' 
-                                    : 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                            }`}
-                        >
-                            <Send size={20} />
-                        </button>
-                    </div>
-                )}
-                
-                <div className="flex items-center justify-center mt-3 gap-3">
-                     <p className="text-[10px] text-gray-600">
-                        {t.poweredBy}
-                    </p>
-                    <button 
-                        onClick={() => setShowAdmin(true)}
-                        className="flex items-center gap-1 text-[10px] text-gray-700 hover:text-flow-accent transition-colors"
-                    >
-                        <Lock size={10} />
-                        <span>{t.staffAccess}</span>
-                    </button>
+            {isInterviewComplete && !isProcessing ? (
+              /* Session complete state */
+              <div className="flex flex-col items-center gap-3 p-5 bg-flow-800/70 backdrop-blur-sm rounded-2xl border border-flow-700">
+                <div className="flex items-center gap-2 text-flow-accent text-xs font-semibold">
+                  <CheckCircle size={14} />
+                  <span>Session complete</span>
                 </div>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="flex items-center gap-2 bg-flow-accent hover:bg-flow-accentHover text-flow-charcoal px-6 py-2.5 rounded-full text-sm font-bold transition-all shadow-glow-purple"
+                >
+                  <RotateCcw size={15} />
+                  {t.startNewSession}
+                </button>
+              </div>
+            ) : (
+              /* Chat input */
+              <div className="flex items-end gap-2 bg-flow-800 p-2 rounded-2xl border border-white/10 transition-colors duration-200 focus-within:border-white/20">
+
+                {/* Voice call button */}
+                <button
+                  onClick={toggleLiveMode}
+                  disabled={isProcessing || isInterviewComplete}
+                  title={t.startVoiceCall}
+                  className="flex-shrink-0 p-2.5 rounded-xl bg-flow-accent/20 text-flow-accent hover:bg-flow-accent hover:text-flow-charcoal transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <Phone size={18} />
+                </button>
+
+                {/* Text input */}
+                <textarea
+                  ref={inputRef}
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder={t.inputPlaceholder}
+                  disabled={isProcessing || isInterviewComplete}
+                  className="flex-1 bg-transparent border-0 outline-none focus:ring-0 focus:outline-none text-white placeholder-white/35 resize-none py-2.5 max-h-32 min-h-[40px] text-sm leading-relaxed"
+                  rows={1}
+                  style={{ height: 'auto', minHeight: '40px' }}
+                />
+
+                {/* Send button */}
+                <button
+                  onClick={() => handleSendMessage(inputValue)}
+                  disabled={!inputValue.trim() || isProcessing || isInterviewComplete}
+                  className={`flex-shrink-0 p-2.5 rounded-xl transition-all duration-200 ${
+                    inputValue.trim() && !isProcessing
+                      ? 'bg-flow-accent text-flow-charcoal hover:bg-flow-accentHover'
+                      : 'bg-white/8 text-white/25 cursor-not-allowed'
+                  }`}
+                >
+                  <Send size={18} />
+                </button>
+              </div>
+            )}
+
+            {/* Footer links */}
+            <div className="flex items-center justify-center mt-2.5 gap-4">
+              <span className="text-[10px] text-white/30">{t.poweredBy}</span>
+              <button
+                onClick={() => setShowAdmin(true)}
+                className="flex items-center gap-1 text-[10px] text-white/30 hover:text-flow-accent transition-colors"
+              >
+                <Lock size={9} />
+                <span>{t.staffAccess}</span>
+              </button>
             </div>
+          </div>
         </footer>
       )}
     </div>

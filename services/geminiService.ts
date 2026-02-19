@@ -179,22 +179,21 @@ export class LiveSession {
       this.sessionPromise = ai.live.connect({
         model: GeminiModel.LIVE,
         config: {
-          responseModalities: [Modality.AUDIO], 
+          responseModalities: [Modality.AUDIO],
           speechConfig: {
             voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } },
           },
-          // Wrap system instruction in parts object for robustness
           systemInstruction: { parts: [{ text: LIVE_ONBOARDING_SYSTEM_INSTRUCTION }] },
-          inputAudioTranscription: {}, 
-          outputAudioTranscription: {},
         },
         callbacks: {
           onopen: this.handleOpen.bind(this),
           onmessage: this.handleMessage.bind(this),
-          onclose: () => this.disconnect(),
-          onerror: (err) => {
+          onclose: (e: any) => {
+            console.warn("Live Session Closed:", e?.code, e?.reason);
+            this.disconnect();
+          },
+          onerror: (err: any) => {
             console.error("Live Session Error:", err);
-            // Don't disconnect immediately on all errors to be robust
           }
         }
       });
@@ -220,7 +219,12 @@ export class LiveSession {
         } 
       });
       
-      if (!this.inputAudioContext) return;
+      // Guard against race: if the WebSocket closed while we were awaiting mic permission, abort.
+      if (!this.active || !this.inputAudioContext) {
+        console.warn("Session closed before mic was ready — aborting setup.");
+        stream.getTracks().forEach(t => t.stop());
+        return;
+      }
 
       this.inputSource = this.inputAudioContext.createMediaStreamSource(stream);
       this.analyser = this.inputAudioContext.createAnalyser();
@@ -234,7 +238,7 @@ export class LiveSession {
         const pcmBlob = this.createBlob(inputData);
         
         this.sessionPromise?.then((session) => {
-          session.sendRealtimeInput({ media: pcmBlob });
+          session.sendRealtimeInput({ audio: pcmBlob });
         });
       };
 
@@ -268,11 +272,14 @@ export class LiveSession {
                 ? "SYSTEM: O utilizador entrou. Diz 'Olá', apresenta-te como Flowi e pergunta o nome (em Português de Portugal). Fala APENAS Português."
                 : "SYSTEM: The user has joined. Say 'Hello', introduce yourself as Flowi and ask for their name (in UK English). Speak ONLY English.";
 
-            session.sendRealtimeInput({
-                content: [{
+            // sendClientContent is the correct SDK method for sending text to a live session.
+            // sendRealtimeInput is only for raw audio/video chunks.
+            session.sendClientContent({
+                turns: [{
                     role: "user",
                     parts: [{ text: greetingPrompt }]
-                }]
+                }],
+                turnComplete: true
             });
         });
     }

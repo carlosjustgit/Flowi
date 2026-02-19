@@ -9,6 +9,7 @@ import ProjectCard from '@/components/ProjectCard';
 interface Project {
   id: string;
   client_name: string;
+  language: 'pt' | 'en';
   created_at: string;
 }
 

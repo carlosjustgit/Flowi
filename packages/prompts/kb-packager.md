@@ -12,3 +12,4 @@ Rules
 - Do not contradict the foundation pack.
 - If visual brand guidance is missing, include a missing information section listing what must be provided.
 - Output only the JSON array.
+- Write all file content in the language specified in the system instruction.

@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
   
   try {
     const body = await request.json();
-    const { project_id, input_artifact_id, job_id } = body;
+    const { project_id, input_artifact_id, job_id, language = 'pt' } = body;
 
     if (!project_id || !input_artifact_id || !job_id) {
       return NextResponse.json(
@@ -22,6 +22,10 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    const langDirective = language === 'pt'
+      ? `OUTPUT LANGUAGE (MANDATORY): Write ALL content in European Portuguese (pt-PT). Use vocabulary such as "Estou a fazer" (not "fazendo"), "Ecrã" (not "tela"), "Equipa" (not "equipe"), "Rato" (not "mouse"). Never output analysis, headings, summaries, or copy in English unless directly quoting a source URL.`
+      : `OUTPUT LANGUAGE (MANDATORY): Write ALL content in English (UK English preferred). All analysis, headings, summaries, and copy must be in English.`;
 
     // Load input artifact (onboarding report)
     const inputArtifact = await getArtifact(input_artifact_id);
@@ -40,9 +44,10 @@ export async function POST(request: NextRequest) {
     const promptPath = resolve(process.cwd(), '../../packages/prompts/research.md');
     const promptTemplate = await readFile(promptPath, 'utf-8');
 
-    // Load system instruction from AI Studio reference
+    // Load system instruction from AI Studio reference and prepend language directive
     const systemInstructionPath = resolve(process.cwd(), '../../ai-studio-instructions/research-agent.md');
-    const systemInstruction = await readFile(systemInstructionPath, 'utf-8');
+    const baseSystemInstruction = await readFile(systemInstructionPath, 'utf-8');
+    const systemInstruction = `${langDirective}\n\n${baseSystemInstruction}`;
 
     // Prepare full prompt with onboarding report
     const fullPrompt = `${promptTemplate}

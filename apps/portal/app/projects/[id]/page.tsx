@@ -8,6 +8,7 @@ import Link from 'next/link';
 interface Project {
   id: string;
   client_name: string;
+  language: 'pt' | 'en';
   created_at: string;
 }
 
@@ -175,7 +176,15 @@ export default function ProjectDetailPage() {
 
       <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">{project.client_name}</h1>
+          <div className="flex items-center gap-3 mb-2">
+            <h1 className="text-3xl font-bold text-gray-900">{project.client_name}</h1>
+            <span
+              title={project.language === 'pt' ? 'European Portuguese' : 'English'}
+              className="inline-flex items-center px-2.5 py-0.5 rounded text-sm font-semibold bg-indigo-100 text-indigo-700"
+            >
+              {project.language === 'pt' ? 'PT' : 'EN'}
+            </span>
+          </div>
           <p className="text-sm text-gray-600 mb-6">
             Created {new Date(project.created_at).toLocaleDateString()}
           </p>

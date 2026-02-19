@@ -18,7 +18,7 @@ export async function POST(
   try {
     const { id: projectId } = await params;
     const body = await request.json();
-    const { onboarding_report, format = 'md' } = body;
+    const { onboarding_report, format = 'md', language } = body;
 
     if (!onboarding_report || typeof onboarding_report !== 'string') {
       return NextResponse.json(
@@ -30,6 +30,13 @@ export async function POST(
     if (!['md', 'json'].includes(format)) {
       return NextResponse.json(
         { error: 'format must be either "md" or "json"' },
+        { status: 400 }
+      );
+    }
+
+    if (language && !['pt', 'en'].includes(language)) {
+      return NextResponse.json(
+        { error: 'language must be "pt" or "en"' },
         { status: 400 }
       );
     }
@@ -48,6 +55,11 @@ export async function POST(
         { error: 'Project not found' },
         { status: 404 }
       );
+    }
+
+    // Update project language if provided (carries language detected by Flowi)
+    if (language) {
+      await supabase.from('projects').update({ language } as any).eq('id', projectId);
     }
 
     // Create artifact for onboarding report

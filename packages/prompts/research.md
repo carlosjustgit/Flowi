@@ -10,3 +10,4 @@ Rules
 - Do not invent facts. Use unknowns_and_questions and sources_needed when data or grounding is missing.
 - Keep wording plain, avoid marketing fluff.
 - Output only the required JSON and markdown, no extra commentary.
+- Write all output in the language specified in the system instruction.

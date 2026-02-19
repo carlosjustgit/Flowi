@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { OnboardingSession, Message } from '../types';
 import { getSessions, deleteSession, saveSession } from '../services/storageService';
 import { generateFinalReport } from '../services/geminiService';
-import { FileText, MessageSquare, Trash2, Printer, X, Search, Calendar, ChevronRight, Lock, ArrowRight, AlertCircle, Wand2, Loader2 } from 'lucide-react';
+import { FileText, MessageSquare, Trash2, Printer, X, Search, Calendar, Lock, ArrowRight, AlertCircle, Wand2, Loader2, CheckSquare, Square } from 'lucide-react';
 import ChatMessage from './ChatMessage';
 import ReactMarkdown from 'react-markdown';
 import { FLOW_LOGO_URL, FLOW_LOGO_FALLBACK, FLOWI_AVATAR_URL } from '../constants';
@@ -22,7 +22,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'report' | 'transcript'>('report');
   const [searchQuery, setSearchQuery] = useState('');
-  
+
+  // Bulk selection state
+  const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+
   // Generation & Print State
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
@@ -55,12 +59,41 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (window.confirm('Are you sure you want to delete this session record?')) {
+    if (window.confirm('Delete this session?')) {
         await deleteSession(id);
+        setCheckedIds(prev => { const next = new Set(prev); next.delete(id); return next; });
         await loadSessions();
-        if (selectedSessionId === id) {
-            setSelectedSessionId(null);
-        }
+        if (selectedSessionId === id) setSelectedSessionId(null);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (checkedIds.size === 0) return;
+    if (!window.confirm(`Delete ${checkedIds.size} session${checkedIds.size > 1 ? 's' : ''}? This cannot be undone.`)) return;
+    setIsBulkDeleting(true);
+    for (const id of checkedIds) {
+      await deleteSession(id);
+    }
+    if (selectedSessionId && checkedIds.has(selectedSessionId)) setSelectedSessionId(null);
+    setCheckedIds(new Set());
+    await loadSessions();
+    setIsBulkDeleting(false);
+  };
+
+  const toggleCheck = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCheckedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (checkedIds.size === filteredSessions.length) {
+      setCheckedIds(new Set());
+    } else {
+      setCheckedIds(new Set(filteredSessions.map(s => s.id)));
     }
   };
   
@@ -165,12 +198,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
     }, 100);
   };
 
-  const selectedSession = sessions.find(s => s.id === selectedSessionId);
-
-  const filteredSessions = sessions.filter(s => 
+  const filteredSessions = sessions.filter(s =>
     s.clientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     s.date.includes(searchQuery)
   );
+
+  const allChecked = filteredSessions.length > 0 && checkedIds.size === filteredSessions.length;
+  const someChecked = checkedIds.size > 0;
+
+  const selectedSession = sessions.find(s => s.id === selectedSessionId);
 
   // --- RENDER LOGIN SCREEN ---
   if (!isAuthenticated) {
@@ -252,12 +288,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
             </button>
         </div>
         
-        <div className="p-4">
+        {/* Search */}
+        <div className="px-4 pt-4 pb-2">
             <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={16} />
-                <input 
-                    type="text" 
-                    placeholder="Search clients..." 
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={15} />
+                <input
+                    type="text"
+                    placeholder="Search clients..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full bg-gray-900 border border-gray-700 rounded-lg pl-9 pr-4 py-2 text-sm focus:ring-1 focus:ring-flow-accent outline-none text-gray-200 placeholder-gray-600"
@@ -265,38 +302,84 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
             </div>
         </div>
 
+        {/* Bulk action toolbar */}
+        {filteredSessions.length > 0 && (
+          <div className="px-4 py-2 flex items-center justify-between">
+            <button
+              onClick={toggleSelectAll}
+              className="flex items-center gap-2 text-xs text-gray-400 hover:text-white transition-colors"
+            >
+              {allChecked
+                ? <CheckSquare size={15} className="text-flow-accent" />
+                : <Square size={15} />}
+              <span>{allChecked ? 'Deselect all' : 'Select all'}</span>
+            </button>
+
+            {someChecked && (
+              <button
+                onClick={handleBulkDelete}
+                disabled={isBulkDeleting}
+                className="flex items-center gap-1.5 bg-red-500/15 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/30 hover:border-red-500 px-3 py-1 rounded-lg text-xs font-semibold transition-all disabled:opacity-50"
+              >
+                {isBulkDeleting
+                  ? <Loader2 size={13} className="animate-spin" />
+                  : <Trash2 size={13} />}
+                Delete {checkedIds.size}
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Session list */}
         <div className="flex-1 overflow-y-auto">
-            {filteredSessions.map((session) => (
-                <div 
+            {filteredSessions.map((session) => {
+              const isChecked = checkedIds.has(session.id);
+              return (
+                <div
                     key={session.id}
                     onClick={() => setSelectedSessionId(session.id)}
-                    className={`p-4 border-b border-gray-800 cursor-pointer transition-all flex justify-between group ${selectedSessionId === session.id ? 'bg-flow-accent/10 border-l-4 border-l-flow-accent' : 'border-l-4 border-l-transparent hover:bg-gray-700/30'}`}
+                    className={`px-3 py-3 border-b border-gray-800 cursor-pointer transition-all flex items-center gap-2 group ${
+                      selectedSessionId === session.id
+                        ? 'bg-flow-accent/10 border-l-4 border-l-flow-accent'
+                        : 'border-l-4 border-l-transparent hover:bg-gray-700/30'
+                    }`}
                 >
-                    <div className="overflow-hidden">
-                        <h3 className={`font-medium truncate ${selectedSessionId === session.id ? 'text-white' : 'text-gray-300'}`}>
+                    {/* Checkbox */}
+                    <button
+                      onClick={(e) => toggleCheck(session.id, e)}
+                      className="flex-shrink-0 text-gray-500 hover:text-flow-accent transition-colors"
+                    >
+                      {isChecked
+                        ? <CheckSquare size={16} className="text-flow-accent" />
+                        : <Square size={16} className="opacity-0 group-hover:opacity-100 transition-opacity" />}
+                    </button>
+
+                    {/* Info */}
+                    <div className="flex-1 overflow-hidden">
+                        <h3 className={`font-medium truncate text-sm ${selectedSessionId === session.id ? 'text-white' : 'text-gray-300'}`}>
                             {session.clientName}
                         </h3>
-                        <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
-                            <Calendar size={12} />
+                        <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
+                            <Calendar size={11} />
                             <span>{new Date(session.date).toLocaleDateString()}</span>
-                            <span className="w-1 h-1 bg-gray-600 rounded-full"></span>
                             <span className="uppercase">{session.language}</span>
                             {session.status === 'in-progress' && (
-                                <span className="text-yellow-500 flex items-center gap-1">
-                                    • In Progress
-                                </span>
+                                <span className="text-flow-accent">• In Progress</span>
                             )}
                         </div>
                     </div>
-                    <button 
+
+                    {/* Single delete */}
+                    <button
                         onClick={(e) => handleDelete(session.id, e)}
-                        className="opacity-0 group-hover:opacity-100 p-2 text-gray-500 hover:text-red-400 transition-opacity"
-                        title="Delete Session"
+                        className="flex-shrink-0 opacity-0 group-hover:opacity-100 p-1.5 text-gray-500 hover:text-red-400 transition-all"
+                        title="Delete"
                     >
-                        <Trash2 size={16} />
+                        <Trash2 size={14} />
                     </button>
                 </div>
-            ))}
+              );
+            })}
             {filteredSessions.length === 0 && (
                 <div className="p-8 text-center text-gray-500 text-sm flex flex-col items-center gap-2">
                     <Search size={24} className="opacity-20" />

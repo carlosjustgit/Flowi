@@ -1,3 +1,8 @@
+-- Add language column to the projects table (platform pipeline)
+-- Run migration 007_add_language_to_projects_CLEAN.sql against the platform DB
+-- ALTER TABLE projects ADD COLUMN IF NOT EXISTS language TEXT NOT NULL DEFAULT 'pt';
+-- ALTER TABLE projects ADD CONSTRAINT IF NOT EXISTS projects_language_check CHECK (language IN ('pt', 'en'));
+
 -- Create the onboarding_sessions table
 CREATE TABLE IF NOT EXISTS onboarding_sessions (
   id TEXT PRIMARY KEY,

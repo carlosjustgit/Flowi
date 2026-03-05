@@ -13,7 +13,7 @@ export interface OnboardingState {
 }
 
 export enum GeminiModel {
-  FLASH = 'gemini-2.5-flash-lite',
+  FLASH = 'gemini-3-1-flash-lite-preview',
   LIVE = 'gemini-2.5-flash-native-audio-preview-12-2025'
 }
 

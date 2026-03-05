@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Message, OnboardingSession } from './types';
 import { initChatSession, sendMessageToGemini, generateFinalReport, LiveSession } from './services/geminiService';
-import { saveSession, extractClientName } from './services/storageService';
+import { saveSession, extractClientName, triggerPipeline } from './services/storageService';
 import ChatMessage from './components/ChatMessage';
 import AdminDashboard from './components/AdminDashboard';
 import { Send, FileText, Loader2, Phone, PhoneOff, Lock, CheckCircle, RotateCcw } from 'lucide-react';
@@ -37,6 +37,7 @@ const App: React.FC = () => {
   
   // Session Persistence
   const sessionIdRef = useRef<string>(Date.now().toString());
+  const isFinalizingRef = useRef<boolean>(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -95,24 +96,23 @@ const App: React.FC = () => {
         };
         const initialMessages = [welcomeMsg];
         setMessages(initialMessages);
-        persistSession(initialMessages, null, 'in-progress');
       }, 600);
     };
     startSession();
   }, [t.welcomeMessage, persistSession]);
 
   const finalizeInterview = useCallback(async (currentMessages: Message[]) => {
+      if (isFinalizingRef.current) return;
+      isFinalizingRef.current = true;
       setIsInterviewComplete(true);
       setIsProcessing(true);
       
-      // Generate report strictly for internal record (Admin Dashboard)
-      // We do NOT show this to the user anymore.
       const reportText = await generateFinalReport(currentMessages);
+      const clientName = extractClientName(reportText);
       
       persistSession(currentMessages, reportText, 'completed');
       setIsProcessing(false);
 
-      // Add a friendly system message for the user
       const completionMsg: Message = {
           id: 'completion',
           role: 'system',
@@ -120,6 +120,15 @@ const App: React.FC = () => {
           timestamp: new Date()
       };
       setMessages(prev => [...prev, completionMsg]);
+
+      // Fire-and-forget: create platform project and trigger full agent pipeline
+      if (reportText) {
+        triggerPipeline(clientName, reportText, language).then(result => {
+          if (result) {
+            console.log(`Full pipeline started — platform project ID: ${result.projectId}`);
+          }
+        });
+      }
 
   }, [persistSession, language]);
 
@@ -222,14 +231,17 @@ const App: React.FC = () => {
                     const lastMsg = prev[prev.length - 1];
                     const isSameRole = lastMsg?.role === role;
                     let newMsgs = [...prev];
+
+                    const hasCompletionToken = role === 'model' && text.includes('[[INTERVIEW_COMPLETE]]');
+                    const cleanText = hasCompletionToken ? text.replace('[[INTERVIEW_COMPLETE]]', '').trim() : text;
                     
                     if (isSameRole) {
-                        newMsgs[newMsgs.length - 1] = { ...lastMsg, text: text, timestamp: new Date() };
+                        newMsgs[newMsgs.length - 1] = { ...lastMsg, text: cleanText, timestamp: new Date() };
                     } else {
-                        newMsgs.push({ id: Date.now().toString(), role: role, text: text, timestamp: new Date() });
+                        newMsgs.push({ id: Date.now().toString(), role: role, text: cleanText, timestamp: new Date() });
                     }
                     
-                    if (role === 'model' && text.includes('[[INTERVIEW_COMPLETE]]')) {
+                    if (hasCompletionToken) {
                         setPendingLiveEnd(true);
                     }
                     persistSession(newMsgs, null, 'in-progress');

@@ -115,6 +115,59 @@ const deleteFromLocalStorage = (id: string) => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
 };
 
+/**
+ * Creates a project in the platform and submits the onboarding report,
+ * which automatically triggers the full agent pipeline (Research → KB → Presentation → Content Planner → QA).
+ */
+export const triggerPipeline = async (
+  clientName: string,
+  reportMd: string,
+  language: 'pt' | 'en'
+): Promise<{ projectId: string } | null> => {
+  const platformUrl = import.meta.env.VITE_PLATFORM_API_URL;
+  if (!platformUrl) {
+    console.warn('VITE_PLATFORM_API_URL not set — pipeline not triggered');
+    return null;
+  }
+
+  try {
+    // Step 1: Create the project in the platform
+    const createRes = await fetch(`${platformUrl}/api/orchestrator/projects`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ client_name: clientName, language }),
+    });
+
+    if (!createRes.ok) {
+      console.error('Failed to create platform project:', await createRes.text());
+      return null;
+    }
+
+    const { id: projectId } = await createRes.json();
+
+    // Step 2: Submit the onboarding report — this fires Research agent automatically
+    const reportRes = await fetch(`${platformUrl}/api/orchestrator/projects/${projectId}/onboarding`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        onboarding_report: reportMd,
+        language,
+      }),
+    });
+
+    if (!reportRes.ok) {
+      console.error('Failed to submit onboarding report:', await reportRes.text());
+      return null;
+    }
+
+    console.log(`Pipeline triggered for project ${projectId}`);
+    return { projectId };
+  } catch (err) {
+    console.error('triggerPipeline error:', err);
+    return null;
+  }
+};
+
 export const extractClientName = (report: string | null): string => {
     if (!report) return "In Progress / Draft";
     

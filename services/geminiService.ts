@@ -180,6 +180,7 @@ export class LiveSession {
         model: GeminiModel.LIVE,
         config: {
           responseModalities: [Modality.AUDIO],
+          thinkingConfig: { thinkingLevel: 'low' },
           speechConfig: {
             voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } },
           },
@@ -272,15 +273,9 @@ export class LiveSession {
                 ? "SYSTEM: O utilizador entrou. Diz 'Olá', apresenta-te como Flowi e pergunta o nome (em Português de Portugal). Fala APENAS Português."
                 : "SYSTEM: The user has joined. Say 'Hello', introduce yourself as Flowi and ask for their name (in UK English). Speak ONLY English.";
 
-            // sendClientContent is the correct SDK method for sending text to a live session.
-            // sendRealtimeInput is only for raw audio/video chunks.
-            session.sendClientContent({
-                turns: [{
-                    role: "user",
-                    parts: [{ text: greetingPrompt }]
-                }],
-                turnComplete: true
-            });
+            // Gemini 3.1: sendClientContent is only for seeding initial history.
+            // Use sendRealtimeInput for all text sent during a live session.
+            session.sendRealtimeInput({ text: greetingPrompt });
         });
     }
 
@@ -292,10 +287,14 @@ export class LiveSession {
     if (!this.active) return;
 
     // --- Audio Output Handling ---
+    // Gemini 3.1: a single event may carry multiple parts simultaneously; iterate all of them.
     if (this.outputAudioContext) {
-        const base64Audio = message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
-        if (base64Audio) {
-          this.onAgentSpeaking(true); // Agent is starting to speak
+        const parts = message.serverContent?.modelTurn?.parts ?? [];
+        for (const part of parts) {
+          const base64Audio = part?.inlineData?.data;
+          if (!base64Audio) continue;
+
+          this.onAgentSpeaking(true);
           
           if (this.outputAudioContext.state === 'suspended') {
               await this.outputAudioContext.resume();
@@ -323,7 +322,7 @@ export class LiveSession {
             source.onended = () => {
                 this.sources.delete(source);
                 if (this.sources.size === 0) {
-                    this.onAgentSpeaking(false); // Silence
+                    this.onAgentSpeaking(false);
                 }
             };
             

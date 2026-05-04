@@ -4,7 +4,7 @@ import { initChatSession, sendMessageToGemini, generateFinalReport, LiveSession 
 import { saveSession, extractClientName, triggerPipeline } from './services/storageService';
 import ChatMessage from './components/ChatMessage';
 import AdminDashboard from './components/AdminDashboard';
-import { Send, FileText, Loader2, Phone, PhoneOff, Lock, CheckCircle, RotateCcw } from 'lucide-react';
+import { Send, Loader2, Mic, MicOff, Lock, CheckCircle, RotateCcw } from 'lucide-react';
 import { FLOWI_AVATAR_URL, UI_TRANSLATIONS, FLOW_LOGO_URL, FLOW_LOGO_FALLBACK } from './constants';
 
 const App: React.FC = () => {
@@ -31,6 +31,7 @@ const App: React.FC = () => {
   const [isAgentSpeaking, setIsAgentSpeaking] = useState(false);
   const [pendingLiveEnd, setPendingLiveEnd] = useState(false);
   const liveSessionRef = useRef<LiveSession | null>(null);
+  const liveConnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -200,7 +201,12 @@ const App: React.FC = () => {
   // --- Live Mode Handlers ---
 
   const endLiveSession = async () => {
+    if (liveConnectTimeoutRef.current) {
+      clearTimeout(liveConnectTimeoutRef.current);
+      liveConnectTimeoutRef.current = null;
+    }
     liveSessionRef.current?.disconnect();
+    liveSessionRef.current = null;
     setIsLiveMode(false);
     setIsLiveConnected(false);
     setIsAgentSpeaking(false);
@@ -222,7 +228,8 @@ const App: React.FC = () => {
 
         liveSessionRef.current = new LiveSession(
             (isActive) => {
-                if (!isActive && isLiveMode) {
+                // Always clean up when the session goes inactive — no stale closure on isLiveMode
+                if (!isActive) {
                     endLiveSession();
                 }
             },
@@ -248,12 +255,25 @@ const App: React.FC = () => {
                     return newMsgs;
                 });
             },
-            () => { setIsLiveConnected(true); },
+            () => {
+                // Connected — clear the stuck-loading safety timeout
+                if (liveConnectTimeoutRef.current) {
+                    clearTimeout(liveConnectTimeoutRef.current);
+                    liveConnectTimeoutRef.current = null;
+                }
+                setIsLiveConnected(true);
+            },
             (vol) => { setMicVolume(vol); },
             (speaking) => { setIsAgentSpeaking(speaking); },
             language
         );
         liveSessionRef.current.connect();
+
+        // Safety net: if we haven't connected within 15s, reset cleanly
+        liveConnectTimeoutRef.current = setTimeout(() => {
+            console.warn('[LiveMode] Connection timeout — resetting');
+            endLiveSession();
+        }, 15000);
     }
   };
 
@@ -340,7 +360,7 @@ const App: React.FC = () => {
             onClick={endLiveSession}
             className="z-10 flex items-center gap-2.5 px-8 py-4 rounded-full border border-red-500/40 bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all duration-300 font-semibold group"
           >
-            <PhoneOff size={20} className="group-hover:rotate-12 transition-transform duration-200" />
+            <MicOff size={20} className="group-hover:scale-110 transition-transform duration-200" />
             {t.endCall}
           </button>
         </div>
@@ -433,14 +453,14 @@ const App: React.FC = () => {
               /* Chat input */
               <div className="flex items-end gap-2 bg-flow-800 p-2 rounded-2xl border border-white/10 transition-colors duration-200 focus-within:border-white/20">
 
-                {/* Voice call button */}
+                {/* Voice mode button */}
                 <button
                   onClick={toggleLiveMode}
                   disabled={isProcessing || isInterviewComplete}
                   title={t.startVoiceCall}
                   className="flex-shrink-0 p-2.5 rounded-xl bg-flow-accent/20 text-flow-accent hover:bg-flow-accent hover:text-flow-charcoal transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed"
                 >
-                  <Phone size={18} />
+                  <Mic size={18} />
                 </button>
 
                 {/* Text input */}

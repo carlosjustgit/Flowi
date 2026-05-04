@@ -1,4 +1,4 @@
-import { GoogleGenAI, Chat, LiveServerMessage, Blob, Modality } from "@google/genai";
+import { GoogleGenAI, Chat, LiveServerMessage, Blob, Modality, StartSensitivity, EndSensitivity } from "@google/genai";
 import { GeminiModel, Message } from "../types";
 import { ONBOARDING_SYSTEM_INSTRUCTION, LIVE_ONBOARDING_SYSTEM_INSTRUCTION, REPORT_GENERATION_PROMPT } from "../constants";
 
@@ -180,11 +180,22 @@ export class LiveSession {
         model: GeminiModel.LIVE,
         config: {
           responseModalities: [Modality.AUDIO],
-          thinkingConfig: { thinkingLevel: 'low' },
+          thinkingConfig: { thinkingLevel: 'minimal' },
           speechConfig: {
             voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } },
           },
           systemInstruction: { parts: [{ text: LIVE_ONBOARDING_SYSTEM_INSTRUCTION }] },
+          // VAD: low sensitivity so background noise doesn't cut the user off.
+          // 2 seconds of silence is required before the model considers the turn over.
+          realtimeInputConfig: {
+            automaticActivityDetection: {
+              disabled: false,
+              startOfSpeechSensitivity: StartSensitivity.START_SENSITIVITY_LOW,
+              endOfSpeechSensitivity: EndSensitivity.END_SENSITIVITY_LOW,
+              prefixPaddingMs: 20,
+              silenceDurationMs: 2000,
+            },
+          },
         },
         callbacks: {
           onopen: this.handleOpen.bind(this),

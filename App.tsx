@@ -493,7 +493,6 @@ const App: React.FC = () => {
 
             {/* Footer links */}
             <div className="flex items-center justify-center mt-2.5 gap-4">
-              <span className="text-[10px] text-white/30">{t.poweredBy}</span>
               <button
                 onClick={() => setShowAdmin(true)}
                 className="flex items-center gap-1 text-[10px] text-white/30 hover:text-flow-accent transition-colors"

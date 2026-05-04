@@ -72,6 +72,10 @@ const App: React.FC = () => {
 
   // Helper to save session state to Supabase/localStorage
   const persistSession = useCallback(async (msgs: Message[], rpt: string | null, status: 'in-progress' | 'completed') => {
+      // Never save a session where the user hasn't said anything yet —
+      // this prevents ghost "Unknown Client / In Progress" rows from page loads and Flowi greetings.
+      if (!msgs.some(m => m.role === 'user')) return;
+
       const sessionData: OnboardingSession = {
           id: sessionIdRef.current,
           date: new Date().toISOString(),
@@ -213,7 +217,7 @@ const App: React.FC = () => {
     setPendingLiveEnd(false);
     setMicVolume(0);
 
-    if (messages.length > 1 && !isInterviewComplete) {
+    if (messages.some(m => m.role === 'user') && !isInterviewComplete) {
         finalizeInterview(messages);
     }
   };
